@@ -1,8 +1,9 @@
-from datetime import datetime
+import datetime
 import minishogilib
 import queue
 import simplejson as json
 import subprocess
+import threading
 
 class Engine():
     def __init__(self, name=None, path=None, cwd=None, args={}, usi_option={}):
@@ -17,7 +18,7 @@ class Engine():
         self.message_queue = queue.Queue()
         threading.Thread(target=self._message_reader).start()
 
-    def _message_reader(verbose=False):
+    def _message_reader(self, verbose=False):
         """Receive message from the engine through standard output and store it.
         # Arguments
             verbose: If true, print message in stdout.
@@ -44,17 +45,23 @@ class Engine():
         self.process.stdin.flush()
 
     def readline(self):
-        message = queue.get()
+        message = self.message_queue.get()
         return message
 
     def ask_nextmove(self, position, timelimits, byoyomi):
-        sfen_position = 'position sfen ' + ' '.join(position.sfen_kif(True))
+        sfen_position = 'position sfen ' + position.sfen(True)
         command = 'go btime {} wtime {} byoyomi'.format(timelimits[0], timelimits[1], byoyomi)
 
         self.send_message(sfen_position)
         self.send_message(command)
 
-    def usi():
+        while True:
+            line = self.readline().split()
+
+            if line[0] == 'bestmove':
+                return line[1]
+
+    def usi(self):
         self.send_message('usi')
 
         while True:
@@ -63,7 +70,7 @@ class Engine():
             if line == 'usiok':
                 break
 
-    def isready():
+    def isready(self):
         for (key, value) in self.usi_option.items():
             command = 'setoption name {} value {}'.format(key, value)
             self.send_message(command)
@@ -76,12 +83,15 @@ class Engine():
             if line == 'readyok':
                 break
 
-    def usinewgame():
+    def usinewgame(self):
         self.send_message('usinewgame')
+
+    def quit(self):
+        self.send_message('quit')
 
 
 class GameRecord():
-    def __init__(name1=None, name2=None):
+    def __init__(self, name1=None, name2=None):
         self.engine1_name = name1
         self.engine2_name = name2
 
@@ -100,7 +110,7 @@ def conduct_game(engines, max_moves):
         engine.usinewgame()
 
     # Game record.
-    game_record = GameRecord(engine[0].name, engine[1].name)
+    game_record = GameRecord(engines[0].name, engines[1].name)
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -124,19 +134,25 @@ def conduct_game(engines, max_moves):
             break
 
         # ToDo: timelimits, byoyomi
-        next_move = engine[player].ask_nextmove(position, [1000, 1000], 1000)
+        next_move = engines[player].ask_nextmove(position, [1000, 1000], 1000)
         game_record.sfen_kif.append(next_move)
-        if not next_move in legal_moves:
-            # Detect a legal move.
-            game_record.winner = 1 - player
 
+        # Detect legal moves.
+        if not next_move in [m.sfen() for m in legal_moves]:
+            game_record.winner = 1 - player
+            break
+
+        next_move = position.sfen_to_move(next_move)
         position.do_move(next_move)
 
-    game_record.timestamp = datetime.now().timestamp()
+    game_record.timestamp = datetime.datetime.now().timestamp()
     return game_record
 
 def main():
-    settings = json.load('./settings.json')
+    with open('./settings.json') as f:
+        settings = json.load(f)
+
+    log_file = settings['config']['log_dir'] + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.json'
 
     # Start up engines.
     engines = [None for _ in range(2)]
@@ -153,6 +169,16 @@ def main():
 
     for engine in engines:
         engine.usi()
+
+    game_record = conduct_game(engines, settings['config']['max_moves'])
+
+    # Output to the log file.
+    with open(log_file, 'a') as f:
+        f.write(json.dumps(game_record.__dict__))
+        f.write('\n')
+
+    for engine in engines:
+        engine.quit()
 
 if __name__ == '__main__':
     main()
