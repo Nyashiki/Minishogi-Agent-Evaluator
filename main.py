@@ -1,6 +1,7 @@
 from datetime import datetime
 import minishogilib
 import queue
+import simplejson as json
 import subprocess
 
 class Engine():
@@ -63,6 +64,10 @@ class Engine():
                 break
 
     def isready():
+        for (key, value) in self.usi_option.items():
+            command = 'setoption name {} value {}'.format(key, value)
+            self.send_message(command)
+
         self.send_message('isready')
 
         while True:
@@ -86,7 +91,7 @@ class GameRecord():
         self.timestamp = 0
 
 
-def conduct_game(engines, max_move=512):
+def conduct_game(engines, max_moves):
     assert len(engines) == 2, "len(engines) should be 2."
 
     # Initialize engines.
@@ -100,7 +105,7 @@ def conduct_game(engines, max_move=512):
     position.set_start_position()
 
     # Let's start a game!
-    for ply in range(max_move):
+    for ply in range(max_moves):
         player = ply % 2
 
         legal_moves = position.generate_moves()
@@ -118,7 +123,8 @@ def conduct_game(engines, max_move=512):
 
             break
 
-        next_move = engine[player].ask_nextmove(position, 'ToDo', 'ToDo')
+        # ToDo: timelimits, byoyomi
+        next_move = engine[player].ask_nextmove(position, [1000, 1000], 1000)
         game_record.sfen_kif.append(next_move)
         if not next_move in legal_moves:
             # Detect a legal move.
@@ -130,10 +136,20 @@ def conduct_game(engines, max_move=512):
     return game_record
 
 def main():
+    settings = json.load('./settings.json')
+
     # Start up engines.
     engines = [None for _ in range(2)]
-    engines[0] = Engine('ToDo', 'ToDo')
-    engines[1] = Engine('ToDo', 'ToDo')
+    engines[0] = Engine(settings['engine1']['name'],
+                        settings['engine1']['path'],
+                        settings['engine1']['cwd'],
+                        settings['engine1']['args'],
+                        settings['engine1']['usi_option'])
+    engines[1] = Engine(settings['engine2']['name'],
+                        settings['engine2']['path'],
+                        settings['engine2']['cwd'],
+                        settings['engine2']['args'],
+                        settings['engine2']['usi_option'])
 
     for engine in engines:
         engine.usi()

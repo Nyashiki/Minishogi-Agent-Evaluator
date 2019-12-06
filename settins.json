@@ -1,0 +1,22 @@
+{
+    "engine1": {
+        "name": "Engine1",
+        "path": "",
+        "cwd": "",
+        "args": {},
+        "usi_option": {}
+    },
+    "engine2": {
+        "name": "Engine1",
+        "path": "",
+        "cwd": "",
+        "args": {},
+        "usi_option": {}
+    },
+    "config": {
+        "games": 50,
+        "max_moves": 512,
+        "timelimit": 60000,
+        "byoyomi": 1000
+    }
+}
