@@ -1,3 +1,4 @@
+from datetime import datetime
 import minishogilib
 import queue
 import subprocess
@@ -74,34 +75,68 @@ class Engine():
         self.send_message('usinewgame')
 
 
-
 class GameRecord():
-    self.engine1_name = None
-    self.engine2_name = None
+    def __init__(name1=None, name2=None):
+        self.engine1_name = name1
+        self.engine2_name = name2
 
-    self.sfen_kif = []
-    self.winner = 2  # 0 is engine1 win, 1 is engine2 win, and 2 is draw.
+        self.sfen_kif = []
+        self.winner = 2  # 0 is engine1 win, 1 is engine2 win, and 2 is draw.
 
-    self.timestamp = 0
+        self.timestamp = 0
 
 
 def conduct_game(engines, max_move=512):
     assert len(engines) == 2, "len(engines) should be 2."
 
-    # Start up engines.
+    # Initialize engines.
+    for engine in engines:
+        engine.isready()
+        engine.usinewgame()
 
-
-    game_record = GameRecord
+    # Game record.
+    game_record = GameRecord(engine[0].name, engine[1].name)
     position = minishogilib.Position()
     position.set_start_position()
 
     # Let's start a game!
     for ply in range(max_move):
-        pass
+        player = ply % 2
 
+        legal_moves = position.generate_moves()
+
+        if len(legal_moves) == 0:
+            game_record.winner = 1 - player
+            break
+
+        is_repetition, is_check_repetition = position.is_repetition()
+        if is_repetition:
+            if is_check_repetition:
+                game_record.winner = player
+            else:
+                game_record.winner = 1
+
+            break
+
+        next_move = engine[player].ask_nextmove(position, 'ToDo', 'ToDo')
+        game_record.sfen_kif.append(next_move)
+        if not next_move in legal_moves:
+            # Detect a legal move.
+            game_record.winner = 1 - player
+
+        position.do_move(next_move)
+
+    game_record.timestamp = datetime.now().timestamp()
+    return game_record
 
 def main():
-    pass
+    # Start up engines.
+    engines = [None for _ in range(2)]
+    engines[0] = Engine('ToDo', 'ToDo')
+    engines[1] = Engine('ToDo', 'ToDo')
+
+    for engine in engines:
+        engine.usi()
 
 if __name__ == '__main__':
     main()
