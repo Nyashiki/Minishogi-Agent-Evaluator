@@ -3,7 +3,9 @@ import minishogilib
 import queue
 import simplejson as json
 import subprocess
+import sys
 import threading
+import time
 
 class Engine():
     def __init__(self, name=None, path=None, cwd=None, args={}, usi_option={}):
@@ -101,7 +103,7 @@ class GameRecord():
         self.timestamp = 0
 
 
-def conduct_game(engines, max_moves):
+def conduct_game(engines, max_moves, timelimit, byoyomi):
     assert len(engines) == 2, "len(engines) should be 2."
 
     # Initialize engines.
@@ -113,6 +115,8 @@ def conduct_game(engines, max_moves):
     game_record = GameRecord(engines[0].name, engines[1].name)
     position = minishogilib.Position()
     position.set_start_position()
+
+    timelimits = [timelimit, timelimit]
 
     # Let's start a game!
     for ply in range(max_moves):
@@ -133,8 +137,12 @@ def conduct_game(engines, max_moves):
 
             break
 
-        # ToDo: timelimits, byoyomi
-        next_move = engines[player].ask_nextmove(position, [1000, 1000], 1000)
+        # Think a next move.
+        start_time = time.time()
+        next_move = engines[player].ask_nextmove(position, timelimits, byoyomi)
+        elapsed = int(1000 * (time.time() - start_time))
+
+        timelimits[player] -= elapsed
         game_record.sfen_kif.append(next_move)
 
         # Detect legal moves.
@@ -170,12 +178,37 @@ def main():
     for engine in engines:
         engine.usi()
 
-    game_record = conduct_game(engines, settings['config']['max_moves'])
+    # Engine1 perspective.
+    win, lose, draw = 0, 0, 0
 
-    # Output to the log file.
-    with open(log_file, 'a') as f:
-        f.write(json.dumps(game_record.__dict__))
-        f.write('\n')
+    for i in range(settings['config']['games']):
+        if i % 2 == 0:
+            game_record = conduct_game(engines, settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+        else:
+            game_record = conduct_game([engines[1], engines[0]], settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+
+        # Output to the log file.
+        with open(log_file, 'a') as f:
+            f.write(json.dumps(game_record.__dict__))
+            f.write('\n')
+
+        if game_record.winner == 2:
+            draw += 1
+        else:
+            if i % 2 == 0:
+                if game_record.winner == 0:
+                    win += 1
+                else:
+                    lose += 1
+            else:
+                if game_record.winner == 1:
+                    win += 1
+                else:
+                    lose += 1
+
+        sys.stdout.write('\rwin: {}, lose:{}, draw:{}'.format(win, lose, draw))
+        sys.stdout.flush()
+    print('')
 
     for engine in engines:
         engine.quit()
