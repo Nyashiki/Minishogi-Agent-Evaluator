@@ -1,0 +1,31 @@
+{
+    "engine1": {
+        "name": "Engine1",
+        "path": "",
+        "cwd": "",
+        "args": {},
+        "usi_option": {
+            "Ponder": false,
+            "Hash": 1024,
+            "UCI_Variant": "minishogi"
+        }
+    },
+    "engine2": {
+        "name": "Engine2",
+        "path": "",
+        "cwd": "",
+        "args": {},
+        "usi_option": {
+            "Ponder": false,
+            "Hash": 1024,
+            "UCI_Variant": "minishogi"
+        }
+    },
+    "config": {
+        "games": 50,
+        "max_moves": 512,
+        "timelimit": 300000,
+        "byoyomi": 0,
+        "log_dir": "./log/"
+    }
+}
