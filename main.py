@@ -52,7 +52,7 @@ class Engine():
 
     def ask_nextmove(self, position, timelimits, byoyomi):
         sfen_position = 'position sfen ' + position.sfen(True)
-        command = 'go btime {} wtime {} byoyomi'.format(timelimits[0], timelimits[1], byoyomi)
+        command = 'go btime {} wtime {} byoyomi {}'.format(timelimits[0], timelimits[1], byoyomi)
 
         self.send_message(sfen_position)
         self.send_message(command)
