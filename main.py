@@ -16,7 +16,7 @@ class Engine():
         for (key, value) in args.items():
             command = '{} {} {}'.format(command, key, value)
 
-        self.process = subprocess.Popen(command.split(), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.process = subprocess.Popen(command.split(), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         self.message_queue = queue.Queue()
         threading.Thread(target=self._message_reader).start()
 
