@@ -1,9 +1,8 @@
 {
     "engine1": {
         "name": "Engine1",
-        "path": "",
+        "command": "",
         "cwd": "",
-        "args": {},
         "usi_option": {
             "Ponder": false,
             "Hash": 1024,
@@ -12,9 +11,8 @@
     },
     "engine2": {
         "name": "Engine2",
-        "path": "",
+        "command": "",
         "cwd": "",
-        "args": {},
         "usi_option": {
             "Ponder": false,
             "Hash": 1024,

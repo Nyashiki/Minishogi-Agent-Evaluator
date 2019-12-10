@@ -7,13 +7,9 @@ import threading
 import time
 
 class Engine():
-    def __init__(self, name=None, path=None, cwd=None, args={}, usi_option={}):
+    def __init__(self, name=None, command=None, cwd=None, usi_option={}):
         self.name = name
         self.usi_option = usi_option
-
-        command = path
-        for (key, value) in args.items():
-            command = '{} {} {}'.format(command, key, value)
 
         self.process = subprocess.Popen(command.split(), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         self.message_queue = queue.Queue()
@@ -171,14 +167,12 @@ def main():
     # Start up engines.
     engines = [None for _ in range(2)]
     engines[0] = Engine(settings['engine1']['name'],
-                        settings['engine1']['path'],
+                        settings['engine1']['command'],
                         settings['engine1']['cwd'],
-                        settings['engine1']['args'],
                         settings['engine1']['usi_option'])
     engines[1] = Engine(settings['engine2']['name'],
-                        settings['engine2']['path'],
+                        settings['engine2']['command'],
                         settings['engine2']['cwd'],
-                        settings['engine2']['args'],
                         settings['engine2']['usi_option'])
 
     for engine in engines:
