@@ -3,7 +3,6 @@ import minishogilib
 import queue
 import simplejson as json
 import subprocess
-import sys
 import threading
 import time
 
@@ -94,12 +93,10 @@ class Engine():
 
 class GameRecord():
     def __init__(self, name1=None, name2=None):
-        self.engine1_name = name1
-        self.engine2_name = name2
-
-        self.sfen_kif = []
-        self.winner = 2  # 0 is engine1 win, 1 is engine2 win, and 2 is draw.
-
+        self.first_player = 0
+        self.winner = 'DRAW'
+        self.ply = 0
+        self.sfen_kif = ''
         self.timestamp = 0
 
 
@@ -118,6 +115,8 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
 
     timelimits = [timelimit, timelimit]
 
+    player_str = ['SENTE', 'GOTE']
+
     # Let's start a game!
     for ply in range(max_moves):
         player = ply % 2
@@ -125,15 +124,15 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
         legal_moves = position.generate_moves()
 
         if len(legal_moves) == 0:
-            game_record.winner = 1 - player
+            game_record.winner = player_str[1 - player]
             break
 
         is_repetition, is_check_repetition = position.is_repetition()
         if is_repetition:
             if is_check_repetition:
-                game_record.winner = player
+                game_record.winner = player_str[player]
             else:
-                game_record.winner = 1
+                game_record.winner = player_str[1]
 
             break
 
@@ -142,8 +141,12 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
         next_move = engines[player].ask_nextmove(position, timelimits, byoyomi)
         elapsed = int(1000 * (time.time() - start_time))
 
+        if next_move == 'resign':
+            game_record.winner = player_str[1 - player]
+            break
+
         timelimits[player] -= elapsed
-        game_record.sfen_kif.append(next_move)
+        game_record.sfen_kif = game_record.sfen_kif + next_move + " "
 
         # Detect legal moves.
         if not next_move in [m.sfen() for m in legal_moves]:
@@ -153,7 +156,10 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
         next_move = position.sfen_to_move(next_move)
         position.do_move(next_move)
 
+    game_record.sfen_kif = game_record.sfen_kif.rstrip()
     game_record.timestamp = datetime.datetime.now().timestamp()
+    game_record.ply = len(game_record.sfen_kif.split())
+
     return game_record
 
 def main():
@@ -178,37 +184,48 @@ def main():
     for engine in engines:
         engine.usi()
 
-    # Engine1 perspective.
+    result = {
+        'engine1': engines[0].name,
+        'engine2': engines[1].name,
+        'records': [],
+        'result': {}
+    }
+
+    # Engine1's perspective.
     win, lose, draw = 0, 0, 0
 
     for i in range(settings['config']['games']):
         if i % 2 == 0:
             game_record = conduct_game(engines, settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+            game_record.first_player = 1
         else:
             game_record = conduct_game([engines[1], engines[0]], settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+            game_record.first_player = 2
 
-        # Output to the log file.
-        with open(log_file, 'a') as f:
-            f.write(json.dumps(game_record.__dict__))
-            f.write('\n')
+        result['records'].append(game_record.__dict__)
 
-        if game_record.winner == 2:
+        if game_record.winner == 'DRAW':
             draw += 1
         else:
             if i % 2 == 0:
-                if game_record.winner == 0:
+                if game_record.winner == 'SENTE':
                     win += 1
                 else:
                     lose += 1
             else:
-                if game_record.winner == 1:
+                if game_record.winner == 'GOTE':
                     win += 1
                 else:
                     lose += 1
 
-        sys.stdout.write('\rwin: {}, lose:{}, draw:{}'.format(win, lose, draw))
-        sys.stdout.flush()
-    print('')
+        result['result']['win'] = win
+        result['result']['lose'] = lose
+        result['result']['draw'] = draw
+
+        # Output to the log file.
+        with open(log_file, 'w') as f:
+            f.write(json.dumps(result, indent=4))
+            f.write('\n')
 
     for engine in engines:
         engine.quit()
