@@ -181,8 +181,8 @@ def main():
     result = {
         'engine1': engines[0].name,
         'engine2': engines[1].name,
-        'records': [],
-        'result': {}
+        'result': {},
+        'records': []
     }
 
     # Engine1's perspective.
