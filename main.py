@@ -6,16 +6,19 @@ import subprocess
 import threading
 import time
 
+
 class Engine():
-    def __init__(self, name=None, command=None, cwd=None, usi_option={}):
+    def __init__(self, name=None, command=None, cwd=None, verbose=False, usi_option={}):
         self.name = name
+        self.verbose = verbose
         self.usi_option = usi_option
 
-        self.process = subprocess.Popen(command.split(), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        self.process = subprocess.Popen(command.split(
+        ), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         self.message_queue = queue.Queue()
         threading.Thread(target=self._message_reader).start()
 
-    def _message_reader(self, verbose=False):
+    def _message_reader(self):
         """Receive message from the engine through standard output and store it.
         # Arguments
             verbose: If true, print message in stdout.
@@ -25,16 +28,16 @@ class Engine():
                 message = line.decode('utf-8').rstrip('\r\n')
                 self.message_queue.put(message)
 
-                if verbose:
+                if self.verbose:
                     print('<:', message)
 
-    def send_message(self, message, verbose=False):
+    def send_message(self, message):
         """Send message to the engine through standard input.
         # Arguments
             message: message sent to the engine.
             verbose: If true, print message in stdout.
         """
-        if verbose:
+        if self.verbose:
             print('>:', message)
 
         message = (message + '\n').encode('utf-8')
@@ -47,7 +50,8 @@ class Engine():
 
     def ask_nextmove(self, position, timelimits, byoyomi):
         sfen_position = 'position sfen ' + position.sfen(True)
-        command = 'go btime {} wtime {} byoyomi {}'.format(timelimits[0], timelimits[1], byoyomi)
+        command = 'go btime {} wtime {} byoyomi {}'.format(
+            timelimits[0], timelimits[1], byoyomi)
 
         self.send_message(sfen_position)
         self.send_message(command)
@@ -123,9 +127,11 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
             game_record.winner = player_str[1 - player]
             break
 
-        is_repetition, is_check_repetition = position.is_repetition()
+        is_repetition, my_check_repetition, op_check_repetition = position.is_repetition()
         if is_repetition:
-            if is_check_repetition:
+            if my_check_repetition:
+                game_record.winner = player_str[1 - player]
+            elif op_check_repetition:
                 game_record.winner = player_str[player]
             else:
                 game_record.winner = player_str[1]
@@ -158,22 +164,18 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
 
     return game_record
 
+
 def main():
     with open('./settings.json') as f:
         settings = json.load(f)
 
-    log_file = settings['config']['log_dir'] + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.json'
+    log_file = settings['config']['log_dir'] + \
+        datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.json'
 
     # Start up engines.
     engines = [None for _ in range(2)]
-    engines[0] = Engine(settings['engine1']['name'],
-                        settings['engine1']['command'],
-                        settings['engine1']['cwd'],
-                        settings['engine1']['usi_option'])
-    engines[1] = Engine(settings['engine2']['name'],
-                        settings['engine2']['command'],
-                        settings['engine2']['cwd'],
-                        settings['engine2']['usi_option'])
+    engines[0] = Engine(**settings['engine1'])
+    engines[1] = Engine(**settings['engine2'])
 
     for engine in engines:
         engine.usi()
@@ -190,10 +192,12 @@ def main():
 
     for i in range(settings['config']['games']):
         if i % 2 == 0:
-            game_record = conduct_game(engines, settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+            game_record = conduct_game(
+                engines, settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
             game_record.first_player = 1
         else:
-            game_record = conduct_game([engines[1], engines[0]], settings['config']['max_moves'], settings['config']['timelimit'], settings['config']['byoyomi'])
+            game_record = conduct_game([engines[1], engines[0]], settings['config']['max_moves'],
+                                       settings['config']['timelimit'], settings['config']['byoyomi'])
             game_record.first_player = 2
 
         result['records'].append(game_record.__dict__)
@@ -223,6 +227,7 @@ def main():
 
     for engine in engines:
         engine.quit()
+
 
 if __name__ == '__main__':
     main()
