@@ -11,6 +11,7 @@ class Engine():
     def __init__(self, name=None, command=None, cwd=None, verbose=False, usi_option={}):
         self.name = name
         self.verbose = verbose
+        self.command = command
         self.usi_option = usi_option
 
         self.process = subprocess.Popen(command.split(
@@ -181,8 +182,16 @@ def main():
         engine.usi()
 
     result = {
-        'engine1': engines[0].name,
-        'engine2': engines[1].name,
+        'engine1': {
+            'name': engines[0].name,
+            'command': engines[0].command,
+            'usi_option': engines[0].usi_option
+        },
+        'engine2': {
+            'name': engines[1].name,
+            'command': engines[1].command,
+            'usi_option': engines[1].usi_option
+        },
         'result': {},
         'records': []
     }
