@@ -1,5 +1,6 @@
 import datetime
 import minishogilib
+from optparse import OptionParser
 import queue
 import simplejson as json
 import subprocess
@@ -169,8 +170,8 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
     return game_record
 
 
-def main():
-    with open('./settings.json') as f:
+def main(config_file):
+    with open(config_file) as f:
         settings = json.load(f)
 
     log_file = settings['config']['log_dir'] + \
@@ -244,4 +245,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = OptionParser()
+    parser.add_option('-c', '--config', dest='config_file',
+                      default="./settings.json")
+
+    (options, args) = parser.parse_args()
+
+    main(config_file=options.config_file)
