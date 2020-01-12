@@ -153,6 +153,7 @@ def conduct_game(engines, max_moves, timelimit, byoyomi):
             break
 
         timelimits[player] -= elapsed
+        timelimits[player] = max(timelimits[player], 0)
         game_record.sfen_kif = game_record.sfen_kif + next_move + " "
 
         # Detect legal moves.
