@@ -8,11 +8,12 @@ import time
 
 
 class Engine():
-    def __init__(self, name=None, command=None, cwd=None, verbose=False, usi_option={}):
+    def __init__(self, name=None, command=None, cwd=None, verbose=False, usi_option={}, timelimit={}):
         self.name = name
         self.verbose = verbose
         self.command = command
         self.usi_option = usi_option
+        self.timelimit = timelimit
 
         self.process = subprocess.Popen(command.split(
         ), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -51,8 +52,10 @@ class Engine():
 
     def ask_nextmove(self, position, timelimits, byoyomi):
         sfen_position = 'position sfen ' + position.sfen(True)
-        command = 'go btime {} wtime {} byoyomi {}'.format(
-            timelimits[0], timelimits[1], byoyomi)
+        command = 'go {} {} {} {} {} {}'.format(
+            self.timelimit['btime'], timelimits[0],
+            self.timelimit['wtime'], timelimits[1],
+            self.timelimit['byoyomi'], byoyomi)
 
         self.send_message(sfen_position)
         self.send_message(command)
@@ -192,6 +195,8 @@ def main():
             'command': engines[1].command,
             'usi_option': engines[1].usi_option
         },
+        'timelimit': settings['config']['timelimit'],
+        'byoyomi': settings['config']['byoyomi'],
         'result': {},
         'records': []
     }
