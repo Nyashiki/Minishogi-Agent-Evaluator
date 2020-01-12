@@ -3,20 +3,34 @@
         "name": "Engine1",
         "command": "",
         "cwd": "",
+        "verbose": true,
         "usi_option": {
             "Ponder": false,
             "Hash": 1024,
+            "Threads": 1,
             "UCI_Variant": "minishogi"
+        },
+        "timelimit": {
+            "btime": "btime",
+            "wtime": "wtime",
+            "byoyomi": "byoyomi"
         }
     },
     "engine2": {
         "name": "Engine2",
         "command": "",
         "cwd": "",
+        "verbose": true,
         "usi_option": {
             "Ponder": false,
             "Hash": 1024,
+            "Threads": 1,
             "UCI_Variant": "minishogi"
+        },
+        "timelimit": {
+            "btime": "btime",
+            "wtime": "wtime",
+            "byoyomi": "byoyomi"
         }
     },
     "config": {
